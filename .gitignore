@@ -1,0 +1,10 @@
+# Project exclude paths
+/imooc-news-dev-common/target/
+/imooc-news-dev-model/target/
+/imooc-news-dev-service-admin/target/
+/imooc-news-dev-service-api/target/
+/imooc-news-dev-service-article/target/
+/imooc-news-dev-service-article-html/target/
+/imooc-news-dev-service-files/target/
+/imooc-news-dev-service-user/target/
+/mybatis-generator-database/target/
