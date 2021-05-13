@@ -34,13 +34,13 @@ spring:
   rabbitmq:
     host: 192.168.145.132
     port: 5672
-    username: admin
-    password: admin
+    username: guest
+    password: guest
     virtual-host: imooc-news-dev
 
 # 定义freemarker生成的html位置
 freemarker:
   html:
     target: D:/DevelopProject/freemarker_html
-    article: F:/apache-tomcat-9.0.38/webapps/imooc-news/portal/a
+    article: F:/apache-tomcat-9.0.45/webapps/imooc-news/portal/a
 
