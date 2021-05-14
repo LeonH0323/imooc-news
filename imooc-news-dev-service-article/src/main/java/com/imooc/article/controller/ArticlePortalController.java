@@ -2,6 +2,7 @@ package com.imooc.article.controller;
 
 import com.imooc.api.BaseController;
 import com.imooc.api.controller.article.ArticlePortalControllerApi;
+import com.imooc.api.controller.user.UserControllerApi;
 import com.imooc.article.service.ArticlePortalService;
 import com.imooc.article.service.ArticleService;
 import com.imooc.grace.result.GraceJSONResult;
@@ -18,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -188,17 +191,45 @@ public class ArticlePortalController extends BaseController implements ArticlePo
         return null;
     }
 
+    // 注入服务发现， 可以获得服务信息
+//    @Autowired
+//    private DiscoveryClient discoveryClient;
+
+    @Autowired
+    private UserControllerApi userControllerApi;
+
     // 发起远程调用，获得用户的基本信息
     private List<AppUserVO> getPublisherList(Set idSet) {
-        String userServerUrlExecute
-                = "http://user.imoocnews.com:8003/user/queryByIds?userIds=" + JsonUtils.objectToJson(idSet);
-        ResponseEntity<GraceJSONResult> responseEntity
-                = restTemplate.getForEntity(userServerUrlExecute, GraceJSONResult.class);
-        GraceJSONResult bodyResult = responseEntity.getBody();
+
+//        String serviedId = "SERVICE-USER";
+//        List<ServiceInstance> instances = discoveryClient.getInstances(serviedId);
+//        ServiceInstance serviceInstance = instances.get(0);
+//
+//        String userServerUrlExecute
+//                = "http://"+ serviceInstance.getHost()
+//                +":"
+//                + serviceInstance.getPort()
+//                +"/user/queryByIds?userIds="
+//                + JsonUtils.objectToJson(idSet);
+//        String userServerUrlExecute
+//                = "http://"
+//                + serviedId
+//                +"/user/queryByIds?userIds="
+//                + JsonUtils.objectToJson(idSet);
+//
+////        String userServerUrlExecute
+////                = "http://user.imoocnews.com:8003/user/queryByIds?userIds=" + JsonUtils.objectToJson(idSet);
+//        ResponseEntity<GraceJSONResult> responseEntity
+//                = restTemplate.getForEntity(userServerUrlExecute, GraceJSONResult.class);
+//        GraceJSONResult bodyResult = responseEntity.getBody();
+        GraceJSONResult bodyResult = userControllerApi.queryByIds(JsonUtils.objectToJson(idSet));
+//
         List<AppUserVO> publisherList = null;
         if (bodyResult.getStatus() == 200) {
             String userJson = JsonUtils.objectToJson(bodyResult.getData());
             publisherList = JsonUtils.jsonToList(userJson, AppUserVO.class);
+        } else {
+            publisherList = new ArrayList<>();
         }
         return publisherList;
     }

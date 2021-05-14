@@ -10,6 +10,8 @@
         <module name="imooc-news-dev-service-article-html" />
         <module name="imooc-news-dev-service-user" />
         <module name="imooc-news-dev-model" />
+        <module name="springcloud-eureka" />
+        <module name="springcloud-eureka-cluster" />
         <module name="imooc-news-dev-service-article" />
         <module name="mybatis-generator-database" />
         <module name="imooc-news-dev-service-api" />
@@ -19,8 +21,6 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="springcloud-config" target="1.8" />
-      <module name="springcloud-eureka" target="1.8" />
-      <module name="springcloud-eureka-cluster" target="1.8" />
       <module name="springcloud-zuul-server" target="1.8" />
     </bytecodeTargetLevel>
   </component>
@@ -35,6 +35,8 @@
       <module name="imooc-news-dev-service-files" options="-parameters" />
       <module name="imooc-news-dev-service-user" options="-parameters" />
       <module name="mybatis-generator-database" options="" />
+      <module name="springcloud-eureka" options="-parameters" />
+      <module name="springcloud-eureka-cluster" options="-parameters" />
     </option>
   </component>
 </project>
