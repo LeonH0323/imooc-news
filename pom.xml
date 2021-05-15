@@ -20,6 +20,7 @@
         <module>springcloud-eureka-cluster</module>
         <module>springcloud-zuul-server</module>
         <module>springcloud-config</module>
+        <module>imooc-news-dev-service-search</module>
     </modules>
 
     <!--
