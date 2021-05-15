@@ -24,10 +24,6 @@ spring:
         git:
           uri: https://github.com/LeonH0323/imooc-news-config.git
           default-label: main  #注意自己的默认路径是master还是main
-#          force-pull: true
-#          username: 1005374639@qq.com
-#          password: Mfk614610518
-#          skip-ssl-validation: true
 # 路由规则 http://[网关地址]:[端口号]/[前缀]/[微服务id]/[请求路径]
   rabbitmq:
     host: 192.168.145.132
