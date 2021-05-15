@@ -2,7 +2,10 @@ package com.imooc.article.controller;
 
 import com.imooc.api.config.RabbitMQConfig;
 import com.imooc.api.config.RabbitMQDelayConfig;
+import com.imooc.article.stream.StreamService;
 import com.imooc.grace.result.GraceJSONResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageDeliveryMode;
@@ -21,6 +24,23 @@ public class HelloController {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+
+    @Autowired
+    public StreamService streamService;
+
+    final static Logger logger = LoggerFactory.getLogger(HelloController.class);
+
+    @GetMapping("/stream")
+    public Object stream(){
+//        streamService.sendMsg();
+//        return "ok";
+        for (int i = 0 ; i < 10 ; i ++ ) {
+            streamService.eat("我吃了第" + (i+1) + "只饺子~");
+        }
+
+        return "ok~~!!!";
+    }
 
     @GetMapping("/hello")
     public Object hello() {

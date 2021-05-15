@@ -52,6 +52,26 @@ spring:
     username: guest
     password: guest
     virtual-host: imooc-news-dev
+  cloud:
+    stream:
+      bindings: # 绑定通道和交换机
+        myInput: # 定义消费者的通道
+          # 自定义交换机名字，也就是消息从底层mq中输出到消费端进行消费
+          destination: streamExchange
+          group: boys
+        myOutput: #定义生产者的通道
+          # 自定义交换机名字，也就是代码里构建消息，交给底层mq的交换机
+          destination: streamExchange
+  zipkin:
+    # 配置zipkin采集的服务地址，数据发送到哪里
+    base-url: http://192.168.145.132:9411/
+    sender:
+      # 数据传输方式，通过web http形式
+      type: web
+  sleuth:
+    sampler:
+        # 设定采样比例，0~1
+        probability: 1
 
 ############################################################
 #

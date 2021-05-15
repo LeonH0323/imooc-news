@@ -38,30 +38,32 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
-
-############################################################
-#
-# eureka配置信息
-#
-############################################################
-
-eureka:
-  # 自定义eureka server的信息
-  server:
-    hostname: eureka
-    port: 7000
-  client:
-    # 所有的微服务都必须注册到eureka中
-    register-with-eureka: true
-    # 从注册中心获得检索服务实例
-    fetch-registry: true
-    # 注册中心的服务地址
-    service-url:
-            defaultZone: http://${eureka.server.hostname}:${eureka.server.port}/eureka/
-#      defaultZone: http://eureka-cluster-7001:7001/eureka/,http://eureka-cluster-7002:7002/eureka/,http://eureka-cluster-7003:7003/eureka/
-  instance:
-    lease-renewal-interval-in-seconds: 3      # 调整心跳时间
-    lease-expiration-duration-in-seconds: 5   # eureka距离最近一次的心跳，等待剔除的时间，超过则剔除
+  rabbitmq:
+    host: 192.168.145.132
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: imooc-news-dev
+  cloud:
+    stream:
+      bindings: # 绑定通道和交换机
+        myInput: # 定义消费者的通道
+          # 自定义交换机名字，也就是消息从底层mq中输出到消费端进行消费
+          destination: streamExchange
+          group: grils
+        myOutput: #定义生产者的通道
+          # 自定义交换机名字，也就是代码里构建消息，交给底层mq的交换机
+          destination: streamExchange
+  zipkin:
+    # 配置zipkin采集的服务地址，数据发送到哪里
+    base-url: http://192.168.145.132:9411/
+    sender:
+      # 数据传输方式，通过web http形式
+      type: web
+  sleuth:
+    sampler:
+      # 设定采样比例，0~1
+      probability: 1
 
 ############################################################
 #
@@ -86,3 +88,45 @@ mapper:
 pagehelper:
   helperDialect: mysql
   supportMethodsArguments: true
+
+
+
+############################################################
+#
+# eureka配置信息
+#
+############################################################
+
+eureka:
+  # 自定义eureka server的信息
+  server:
+    hostname: eureka
+    port: 7000
+  client:
+    # 所有的微服务都必须注册到eureka中
+    register-with-eureka: true
+    # 从注册中心获得检索服务实例
+    fetch-registry: true
+    # 注册中心的服务地址
+    service-url:
+      defaultZone: http://${eureka.server.hostname}:${eureka.server.port}/eureka/
+  #      defaultZone: http://eureka-cluster-7001:7001/eureka/,http://eureka-cluster-7002:7002/eureka/,http://eureka-cluster-7003:7003/eureka/
+  instance:
+    lease-renewal-interval-in-seconds: 3      # 调整心跳时间
+    lease-expiration-duration-in-seconds: 5   # eureka距离最近一次的心跳，等待剔除的时间，超过则剔除
+
+
+# 配置hystrix
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 2000   # 设置hystrix超时时间，超过2秒触发降级
+      circuitBreaker:   # 配置断路器
+        enabled: true
+        requestVolumeThreshold: 10    # 触发熔断最小请求次数，默认：20
+        sleepWindowInMilliseconds: 15000    # 熔断后过几秒后尝试半开状态（请求重试），默认：5s
+        errorThresholdPercentage: 50  # 触发熔断的失败率(异常率，阈值)，默认：50
+

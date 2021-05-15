@@ -1,6 +1,7 @@
 package com.imooc.api.controller.user;
 
 import com.imooc.api.config.MyServiceList;
+import com.imooc.api.controller.user.fallbacks.UserControllerFactoryFallback;
 import com.imooc.grace.result.GraceJSONResult;
 import com.imooc.pojo.bo.RegistLoginBO;
 import com.imooc.pojo.bo.UpdateUserInfoBO;
@@ -16,7 +17,7 @@ import javax.validation.Valid;
 
 @Api(value = "用户信息相关Controller", tags = {"用户信息相关Controller"})
 @RequestMapping("user")
-@FeignClient(value = MyServiceList.SERVICE_USER)
+@FeignClient(value = MyServiceList.SERVICE_USER, fallbackFactory = UserControllerFactoryFallback.class)
 public interface UserControllerApi {
 
     @ApiOperation(value = "获得用户基本信息", notes = "获得用户基本信息", httpMethod = "POST")

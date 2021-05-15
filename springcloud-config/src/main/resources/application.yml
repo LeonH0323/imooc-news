@@ -1,0 +1,60 @@
+############################################################
+#
+# 配置服务中心
+# web访问端口号  约定：7080
+#
+############################################################
+server:
+  port: 7080
+  tomcat:
+    uri-encoding: UTF-8
+    max-swallow-size: -1  # tomcat默认大小2M，超过2M的文件不会被捕获，需要调整此处大小为100MB或者-1即可
+
+############################################################
+#
+# 配置项目信息
+#
+############################################################
+spring:
+  application:
+    name: springcloud-config
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/LeonH0323/imooc-news-config.git
+          default-label: main  #注意自己的默认路径是master还是main
+#          force-pull: true
+#          username: 1005374639@qq.com
+#          password: Mfk614610518
+#          skip-ssl-validation: true
+# 路由规则 http://[网关地址]:[端口号]/[前缀]/[微服务id]/[请求路径]
+  rabbitmq:
+    host: 192.168.145.132
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: imooc-news-dev
+
+eureka:
+  server:
+    hostname: eureka
+    port: 7000
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      # 注册中心的地址，表示我当前微服务要登记户口到指定的派出所
+            defaultZone: http://${eureka.server.hostname}:${eureka.server.port}/eureka/
+      # 微服务向eureka集群中注册
+#      defaultZone: http://eureka-cluster-7001:7001/eureka/,http://eureka-cluster-7002:7002/eureka/,http://eureka-cluster-7003:7003/eureka/
+
+
+# 配置动态刷新git配置的路径终端请求地址
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+

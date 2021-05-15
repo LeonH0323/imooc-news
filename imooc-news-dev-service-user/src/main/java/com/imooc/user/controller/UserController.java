@@ -13,6 +13,8 @@ import com.imooc.pojo.vo.UserAccountInfoVO;
 import com.imooc.user.service.UserService;
 import com.imooc.utils.JsonUtils;
 import com.imooc.utils.RedisOperator;
+import com.netflix.hystrix.contrib.javanica.annotation.DefaultProperties;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,12 +31,18 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
+@DefaultProperties(defaultFallback = "defaultFallback")
 public class UserController extends BaseController implements UserControllerApi {
 
     final static Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserService userService;
+
+    public GraceJSONResult defaultFallback(){
+        System.out.println("全局降级");
+        return GraceJSONResult.errorCustom(ResponseStatusEnum.SYSTEM_ERROR_GLOBAL);
+    }
 
     @Override
     public GraceJSONResult getUserInfo(String userId) {
@@ -94,12 +102,6 @@ public class UserController extends BaseController implements UserControllerApi 
     public GraceJSONResult updateUserInfo(
             @Valid UpdateUserInfoBO updateUserInfoBO) {
 
-//        // 0. 校验BO
-//        if (result.hasErrors()) {
-//            Map<String, String> map = getErrors(result);
-//            return GraceJSONResult.errorMap(map);
-//        }
-
         // 1. 执行更新操作
         userService.updateUserInfo(updateUserInfoBO);
         return GraceJSONResult.ok();
@@ -108,8 +110,18 @@ public class UserController extends BaseController implements UserControllerApi 
     @Value("${server.port}")
     private String myPort;
 
+    @HystrixCommand//(fallbackMethod = "queryByIdsFallback")
     @Override
     public GraceJSONResult queryByIds(String userIds) {
+
+        // 1.模拟异常
+//        int a = 1 / 0;
+        // 2.模拟超时
+//        try {
+//            Thread.sleep(8000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
 
         System.out.println("myPort = " + myPort);
 
@@ -119,9 +131,33 @@ public class UserController extends BaseController implements UserControllerApi 
 
         List<AppUserVO> publisherList = new ArrayList<>();
         List<String> userIdList = JsonUtils.jsonToList(userIds, String.class);
+
+
+        // FIXME: 仅用于dev，硬编码动态判断抛出异常。如果查询的用户id是200628AFYM7AGWPH，则正常，如果不是则抛出异常。如此一来发生异常的失败率将会被hystrix统计
+        if (userIdList.size() > 1) {
+            System.out.println("出异常啦~");
+            throw new RuntimeException("出异常啦~");
+        }
+
         for (String userId : userIdList) {
             // 获得用户基本信息
             AppUserVO userVO = getBasicUserInfo(userId);
+            // 添加到publisherList
+            publisherList.add(userVO);
+        }
+
+        return GraceJSONResult.ok(publisherList);
+    }
+
+    // 用于降级的方法
+    public GraceJSONResult queryByIdsFallback(String userIds) {
+        System.out.println("进入降级方法：queryByIdsFallback");
+
+        List<AppUserVO> publisherList = new ArrayList<>();
+        List<String> userIdList = JsonUtils.jsonToList(userIds, String.class);
+        for (String userId : userIdList) {
+            // 手动构建空对象，详情页所展示的用户信息可有可无
+            AppUserVO userVO = new AppUserVO();
             // 添加到publisherList
             publisherList.add(userVO);
         }

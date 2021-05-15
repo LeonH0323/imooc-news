@@ -1,0 +1,70 @@
+############################################################
+#
+# zuul网关
+# web访问端口号  约定：7070
+#
+############################################################
+server:
+  port: 7070
+  tomcat:
+    uri-encoding: UTF-8
+    max-swallow-size: -1  # tomcat默认大小2M，超过2M的文件不会被捕获，需要调整此处大小为100MB或者-1即可
+
+############################################################
+#
+# 配置项目信息
+#
+############################################################
+spring:
+  application:
+    name: springcloud-zuul
+  redis:
+    database: 0
+    host: 192.168.145.132
+    port: 6379
+    password: 123456
+  zipkin:
+    # 配置zipkin采集的服务地址，数据发送到哪里
+    base-url: http://192.168.145.132:9411/
+    sender:
+      # 数据传输方式，通过web http形式
+      type: web
+  sleuth:
+    sampler:
+      # 设定采样比例，0~1
+      probability: 1
+
+# 路由规则 http://[网关地址]:[端口号]/[前缀]/[微服务id]/[请求路径]
+eureka:
+  server:
+    hostname: eureka
+    port: 7000
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      # 注册中心的地址，表示我当前微服务要登记户口到指定的派出所
+            defaultZone: http://${eureka.server.hostname}:${eureka.server.port}/eureka/
+      # 微服务向eureka集群中注册
+#      defaultZone: http://eureka-cluster-7001:7001/eureka/,http://eureka-cluster-7002:7002/eureka/,http://eureka-cluster-7003:7003/eureka/
+
+zuul:
+  routes:
+    # 由于路由id和微服务实例id相同，我们可以简化转发的配合
+    service-article: /service-article/** # 配置的微服务路由id，微服务实例id
+#      path: /service-article/**     # 请求路径(前缀)，匹配规则：localhost:6000/article-service/abc
+#      service-id: service-article   # 请求转发的微服务实例id
+#      url: http://10.10.52.11:8001   # 转发请求到指定微服务的ip地址
+  prefix: /api  # 前缀
+
+# ip请求限制的参数配置
+blackIp:
+  continueCounts: ${counts:10}  # ip连续请求的次数
+  timeInterval: ${interval:10}  # ip判断的事件间隔， 单位： 秒
+  limitTimes: ${times:15}       # 限制的事件， 单位： 秒
+
+
+
+
+
+
