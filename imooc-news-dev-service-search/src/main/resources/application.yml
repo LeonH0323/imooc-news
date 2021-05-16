@@ -18,3 +18,8 @@ server:
 spring:
   application:
     name: service-search
+
+  data:
+    elasticsearch:
+      cluster-name: imooc-elasticsearch
+      cluster-nodes: 192.168.145.132:9300
