@@ -257,7 +257,7 @@ public class ArticleController extends BaseController implements ArticleControll
     // 发起远程调用rest，获得文章详情数据
     public ArticleDetailVO getArticleDetail(String articleId) {
         String url
-                = "http://www.imoocnews.com:8001/portal/article/detail?articleId=" + articleId;
+                = "http://service-article:8001/portal/article/detail?articleId=" + articleId;
         ResponseEntity<GraceJSONResult> responseEntity
                 = restTemplate.getForEntity(url, GraceJSONResult.class);
         GraceJSONResult bodyResult = responseEntity.getBody();

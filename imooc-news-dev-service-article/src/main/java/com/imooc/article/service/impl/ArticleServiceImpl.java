@@ -16,6 +16,7 @@ import com.imooc.grace.result.ResponseStatusEnum;
 import com.imooc.pojo.Article;
 import com.imooc.pojo.Category;
 import com.imooc.pojo.bo.NewArticleBO;
+import com.imooc.pojo.eo.ArticleEO;
 import com.imooc.utils.DateUtil;
 import com.imooc.utils.PagedGridResult;
 import com.imooc.utils.extend.AliTextReviewUtils;
@@ -32,6 +33,9 @@ import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.query.IndexQuery;
+import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -55,6 +59,9 @@ public class ArticleServiceImpl extends BaseService implements ArticleService {
 
     @Autowired
     private AliTextReviewUtils aliTextReviewUtils;
+
+    @Autowired
+    private ElasticsearchTemplate esTemplate;
 
     @Transactional
     @Override
@@ -161,6 +168,19 @@ public class ArticleServiceImpl extends BaseService implements ArticleService {
         int res = articleMapper.updateByExampleSelective(pendingArticle, example);
         if (res != 1) {
             GraceException.display(ResponseStatusEnum.ARTICLE_REVIEW_ERROR);
+        }
+
+        // 如果审核通过，则查询article，把相应的数据字段信息存入es中
+        if (pendingStatus == ArticleReviewStatus.SUCCESS.type) {
+            Article article = articleMapper.selectByPrimaryKey(articleId);
+            // 如果是即时发布的文章，审核通过后则可以直接存入es中
+            if (article.getIsAppoint() == ArticleAppointType.IMMEDIATELY.type) {
+                ArticleEO articleEO = new ArticleEO();
+                BeanUtils.copyProperties(article, articleEO);
+                IndexQuery iq = new IndexQueryBuilder().withObject(articleEO).build();
+                esTemplate.index(iq);
+            }
+            //FIXME: 作业：如果是定时发布，此处不会存入到es中，需要在定时的延迟队列中去执行
         }
     }
 
@@ -272,6 +292,8 @@ public class ArticleServiceImpl extends BaseService implements ArticleService {
         }
 
         deleteHTML(articleId);
+
+        esTemplate.delete(ArticleEO.class, articleId);
     }
 
     @Autowired
@@ -282,6 +304,11 @@ public class ArticleServiceImpl extends BaseService implements ArticleService {
     private void deleteHTML(String articleId) {
         // 1. 查询文章的mongoFileId
         Article pending = articleMapper.selectByPrimaryKey(articleId);
+
+        if (StringUtils.isBlank(pending.getMongoFileId())) {
+            return;
+        }
+
         String articleMongoId = pending.getMongoFileId();
 
         // 2. 删除GridFS上的文件
@@ -324,6 +351,8 @@ public class ArticleServiceImpl extends BaseService implements ArticleService {
         }
 
         deleteHTML(articleId);
+
+        esTemplate.delete(ArticleEO.class, articleId);
     }
 
     private Example makeExampleCriteria(String userId, String articleId) {

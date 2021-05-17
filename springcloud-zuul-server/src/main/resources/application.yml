@@ -55,11 +55,16 @@ zuul:
 #      path: /service-article/**     # 请求路径(前缀)，匹配规则：localhost:6000/article-service/abc
 #      service-id: service-article   # 请求转发的微服务实例id
 #      url: http://10.10.52.11:8001   # 转发请求到指定微服务的ip地址
+    service-user: /service-user/**
+    service-files: /service-files/**
+    service-admin: /service-admin/**
   prefix: /api  # 前缀
-
+  ignored-headers: Access-Control-Allow-Credentials, Access-Control-Allow-Origin
+#  sensitive-headers: Access-Control-Allow-Origin
+#  ignored-headers: Access-Control-Allow-Origin,H-APP-Id,Token,APPToken
 # ip请求限制的参数配置
 blackIp:
-  continueCounts: ${counts:10}  # ip连续请求的次数
+  continueCounts: ${counts:100}  # ip连续请求的次数
   timeInterval: ${interval:10}  # ip判断的事件间隔， 单位： 秒
   limitTimes: ${times:15}       # 限制的事件， 单位： 秒
 

@@ -23,6 +23,12 @@ public class MyFansController extends BaseController implements MyFansController
     private MyFanService myFanService;
 
     @Override
+    public GraceJSONResult forceUpdateFanInfo(String relationId, String fanId) {
+        myFanService.forceUpdateFanInfo(relationId, fanId);
+        return GraceJSONResult.ok();
+    }
+
+    @Override
     public GraceJSONResult isMeFollowThisWriter(String writerId,
                                                 String fanId) {
         boolean res = myFanService.isMeFollowThisWriter(writerId, fanId);
@@ -53,20 +59,24 @@ public class MyFansController extends BaseController implements MyFansController
             pageSize = COMMON_PAGE_SIZE;
         }
 
-        return GraceJSONResult.ok(myFanService.queryMyFansList(writerId,
-                                    page,
-                                    pageSize));
+//        return GraceJSONResult.ok(myFanService.queryMyFansList(writerId,
+//                                    page,
+//                                    pageSize));
+        return GraceJSONResult.ok(myFanService.queryMyFansESList(writerId,
+                page,
+                pageSize));
     }
 
     @Override
     public GraceJSONResult queryRatio(String writerId) {
 
-        int manCounts = myFanService.queryFansCounts(writerId, Sex.man);
-        int womanCounts = myFanService.queryFansCounts(writerId, Sex.woman);
-
-        FansCountsVO fansCountsVO = new FansCountsVO();
-        fansCountsVO.setManCounts(manCounts);
-        fansCountsVO.setWomanCounts(womanCounts);
+//        int manCounts = myFanService.queryFansCounts(writerId, Sex.man);
+//        int womanCounts = myFanService.queryFansCounts(writerId, Sex.woman);
+//
+//        FansCountsVO fansCountsVO = new FansCountsVO();
+//        fansCountsVO.setManCounts(manCounts);
+//        fansCountsVO.setWomanCounts(womanCounts);
+        FansCountsVO fansCountsVO = myFanService.queryFansESCounts(writerId);
 
         return GraceJSONResult.ok(fansCountsVO);
     }
@@ -74,6 +84,6 @@ public class MyFansController extends BaseController implements MyFansController
     @Override
     public GraceJSONResult queryRatioByRegion(String writerId) {
         return GraceJSONResult.ok(myFanService
-                .queryRegionRatioCounts(writerId));
+                .queryRegionRatioESCounts(writerId));
     }
 }

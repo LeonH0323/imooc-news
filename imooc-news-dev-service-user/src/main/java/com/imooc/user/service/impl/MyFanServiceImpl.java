@@ -9,6 +9,8 @@ import com.imooc.grace.result.ResponseStatusEnum;
 import com.imooc.pojo.AppUser;
 import com.imooc.pojo.Fans;
 import com.imooc.pojo.bo.UpdateUserInfoBO;
+import com.imooc.pojo.eo.FansEO;
+import com.imooc.pojo.vo.FansCountsVO;
 import com.imooc.pojo.vo.PublisherVO;
 import com.imooc.pojo.vo.RegionRatioVO;
 import com.imooc.user.mapper.AppUserMapper;
@@ -17,13 +19,29 @@ import com.imooc.user.mapper.FansMapper;
 import com.imooc.user.service.MyFanService;
 import com.imooc.user.service.UserService;
 import com.imooc.utils.*;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.LongTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.StringTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.n3r.idworker.Sid;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ResultsExtractor;
+import org.springframework.data.elasticsearch.core.aggregation.AggregatedPage;
+import org.springframework.data.elasticsearch.core.query.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
+import java.awt.print.Pageable;
 import java.util.*;
 
 @Service
@@ -37,6 +55,9 @@ public class MyFanServiceImpl extends BaseService implements MyFanService {
 
     @Autowired
     private Sid sid;
+
+    @Autowired
+    private ElasticsearchTemplate esTemplate;
 
     @Override
     public boolean isMeFollowThisWriter(String writerId, String fanId) {
@@ -74,6 +95,12 @@ public class MyFanServiceImpl extends BaseService implements MyFanService {
         redis.increment(REDIS_WRITER_FANS_COUNTS + ":" + writerId, 1);
         // redis 当前用户的（我的）关注数累加
         redis.increment(REDIS_MY_FOLLOW_COUNTS + ":" + fanId, 1);
+
+        // 保存粉丝关系到es中
+        FansEO fansEO = new FansEO();
+        BeanUtils.copyProperties(fans, fansEO);
+        IndexQuery iq = new IndexQueryBuilder().withObject(fansEO).build();
+        esTemplate.index(iq);
     }
 
     @Transactional
@@ -90,6 +117,12 @@ public class MyFanServiceImpl extends BaseService implements MyFanService {
         redis.decrement(REDIS_WRITER_FANS_COUNTS + ":" + writerId, 1);
         // redis 当前用户的（我的）关注数累减
         redis.decrement(REDIS_MY_FOLLOW_COUNTS + ":" + fanId, 1);
+
+        // 删除es中的粉丝关系, DeleteQuery: 根据条件删除
+        DeleteQuery dq = new DeleteQuery();
+        dq.setQuery(QueryBuilders.termQuery("writerId", writerId));
+        dq.setQuery(QueryBuilders.termQuery("fanId", fanId));
+        esTemplate.delete(dq, FansEO.class);
     }
 
     @Override
@@ -105,6 +138,31 @@ public class MyFanServiceImpl extends BaseService implements MyFanService {
     }
 
     @Override
+    public PagedGridResult queryMyFansESList(String writerId,
+                                             Integer page,
+                                             Integer pageSize) {
+
+        page--;
+        PageRequest pageRequest = PageRequest.of(page, pageSize);
+
+        NativeSearchQuery query = new NativeSearchQueryBuilder()
+                .withQuery(QueryBuilders.termQuery("writerId", writerId))
+                .withPageable(pageRequest)
+                .build();
+
+        AggregatedPage<FansEO> fansEOS = esTemplate.queryForPage(query, FansEO.class);
+
+        PagedGridResult pagedGridResult = new PagedGridResult();
+        pagedGridResult.setRows(fansEOS.getContent());
+        pagedGridResult.setPage(page + 1);
+        pagedGridResult.setTotal(fansEOS.getTotalPages());
+        pagedGridResult.setRecords(fansEOS.getTotalElements());
+
+        return pagedGridResult;
+
+    }
+
+    @Override
     public Integer queryFansCounts(String writerId, Sex sex) {
         Fans fans = new Fans();
         fans.setWriterId(writerId);
@@ -112,6 +170,49 @@ public class MyFanServiceImpl extends BaseService implements MyFanService {
 
         Integer count = fansMapper.selectCount(fans);
         return count;
+    }
+
+    @Override
+    public FansCountsVO queryFansESCounts(String writerId) {
+
+        TermsAggregationBuilder aggregationBuilder = AggregationBuilders
+                .terms("sex_counts")
+                .field("sex");
+        SearchQuery searchQuery = new NativeSearchQueryBuilder()
+                .withQuery(QueryBuilders.matchQuery("writerId", writerId))
+                .addAggregation(aggregationBuilder)
+                .build();
+        Aggregations aggregations = esTemplate.query(searchQuery, new ResultsExtractor<Aggregations>() {
+            @Override
+            public Aggregations extract(SearchResponse searchResponse) {
+                return searchResponse.getAggregations();
+            }
+        });
+
+        Map aggMap = aggregations.asMap();
+        LongTerms longTerms = (LongTerms)aggMap.get("sex_counts");
+        List bucketList = longTerms.getBuckets();
+
+        FansCountsVO fansCountsVO = new FansCountsVO();
+        for (int i = 0; i < bucketList.size(); i++) {
+            LongTerms.Bucket bucket = (LongTerms.Bucket) bucketList.get(i);
+            Long docCount = bucket.getDocCount();
+            Long key = (Long) bucket.getKey();
+
+            if (key.intValue() == Sex.woman.type) {
+                fansCountsVO.setWomanCounts(docCount.intValue());
+            } else if (key.intValue() == Sex.man.type) {
+                fansCountsVO.setManCounts(docCount.intValue());
+            }
+        }
+
+
+        if (bucketList == null || bucketList.size() == 0) {
+            fansCountsVO.setManCounts(0);
+            fansCountsVO.setWomanCounts(0);
+        }
+
+        return fansCountsVO;
     }
 
     public static final String[] regions = {"北京", "天津", "上海", "重庆",
@@ -138,5 +239,79 @@ public class MyFanServiceImpl extends BaseService implements MyFanService {
         }
 
         return list;
+    }
+
+    @Override
+    public List<RegionRatioVO> queryRegionRatioESCounts(String writerId) {
+
+        TermsAggregationBuilder aggregationBuilder = AggregationBuilders
+                .terms("region_counts")
+                .field("province");
+        SearchQuery searchQuery = new NativeSearchQueryBuilder()
+                .withQuery(QueryBuilders.matchQuery("writerId", writerId))
+                .addAggregation(aggregationBuilder)
+                .build();
+        Aggregations aggregations = esTemplate.query(searchQuery, new ResultsExtractor<Aggregations>() {
+            @Override
+            public Aggregations extract(SearchResponse searchResponse) {
+                return searchResponse.getAggregations();
+            }
+        });
+
+        Map aggMap = aggregations.asMap();
+        StringTerms stringTerms = (StringTerms)aggMap.get("region_counts");
+        List bucketList = stringTerms.getBuckets();
+
+        List<RegionRatioVO> list = new ArrayList<>();
+        for (int i = 0; i < bucketList.size(); i++) {
+            StringTerms.Bucket bucket = (StringTerms.Bucket) bucketList.get(i);
+            Long docCount = bucket.getDocCount();
+            String key = (String) bucket.getKey();
+
+            System.out.println(key);
+            System.out.println(docCount);
+
+            RegionRatioVO regionRatioVO = new RegionRatioVO();
+            regionRatioVO.setName(key);
+            regionRatioVO.setValue(docCount.intValue());
+            list.add(regionRatioVO);
+        }
+
+        return list;
+    }
+
+    @Override
+    public void forceUpdateFanInfo(String relationId, String fanId) {
+        // 1. 根据fanId查询用户信息
+        AppUser user = userService.getUser(fanId);
+
+        // 2. 更新用户信息到db和es中
+        Fans fans = new Fans();
+        fans.setId(relationId);
+
+        fans.setFace(user.getFace());
+        fans.setFanNickname(user.getNickname());
+        fans.setSex(user.getSex());
+        fans.setProvince(user.getProvince());
+
+        fansMapper.updateByPrimaryKeySelective(fans);
+
+        // 3. 更新到es中
+        Map<String, Object> updateMap = new HashMap<>();
+        updateMap.put("face", user.getFace());
+        updateMap.put("fanNickname", user.getNickname());
+        updateMap.put("sex", user.getSex());
+        updateMap.put("province", user.getProvince());
+
+        IndexRequest ir = new IndexRequest();
+        ir.source(updateMap);
+
+        UpdateQuery uq = new UpdateQueryBuilder()
+                .withClass(FansEO.class)
+                .withId(relationId)
+                .withIndexRequest(ir)
+                .build();
+
+        esTemplate.update(uq);
     }
 }

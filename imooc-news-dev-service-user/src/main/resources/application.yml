@@ -20,6 +20,10 @@ spring:
     active: dev   # yml中配置文件的环境配置，dev：开发环境，test：测试环境，prod：生产环境
   application:
     name: service-user
+  data:
+    elasticsearch:
+      cluster-name: imooc-elasticsearch
+      cluster-nodes: 192.168.145.132:9300
   datasource:                                         # 数据源的相关配置
     type: com.zaxxer.hikari.HikariDataSource          # 数据源类型：HikariCP
     driver-class-name: com.mysql.jdbc.Driver          # mysql驱动

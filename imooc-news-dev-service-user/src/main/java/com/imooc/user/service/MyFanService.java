@@ -1,6 +1,7 @@
 package com.imooc.user.service;
 
 import com.imooc.enums.Sex;
+import com.imooc.pojo.vo.FansCountsVO;
 import com.imooc.pojo.vo.RegionRatioVO;
 import com.imooc.utils.PagedGridResult;
 
@@ -30,6 +31,12 @@ public interface MyFanService {
     public PagedGridResult queryMyFansList(String writerId,
                                            Integer page,
                                            Integer pageSize);
+    /**
+     * 查询我的粉丝数，通过ES
+     */
+    public PagedGridResult queryMyFansESList(String writerId,
+                                           Integer page,
+                                           Integer pageSize);
 
     /**
      * 查询粉丝数
@@ -37,7 +44,22 @@ public interface MyFanService {
     public Integer queryFansCounts(String writerId, Sex sex);
 
     /**
+     * 查询粉丝数， 通过ES
+     */
+    public FansCountsVO queryFansESCounts(String writerId);
+
+    /**
      * 查询粉丝数
      */
     public List<RegionRatioVO> queryRegionRatioCounts(String writerId);
+
+    /**
+     * 查询粉丝数, 通过ES
+     */
+    public List<RegionRatioVO> queryRegionRatioESCounts(String writerId);
+
+    /**
+     * 被动查询粉丝信息
+     */
+    public void forceUpdateFanInfo(String relationId, String fanId);
 }

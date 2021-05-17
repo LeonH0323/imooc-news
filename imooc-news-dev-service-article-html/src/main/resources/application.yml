@@ -44,3 +44,23 @@ freemarker:
     target: D:/DevelopProject/freemarker_html
     article: F:/apache-tomcat-9.0.45/webapps/imooc-news/portal/a
 
+############################################################
+#
+# eureka配置信息
+#
+############################################################
+
+eureka:
+  # 自定义eureka server的信息
+  server:
+    hostname: eureka
+    port: 7000
+  client:
+    # 所有的微服务都必须注册到eureka中
+    register-with-eureka: true
+    # 从注册中心获得检索服务实例
+    fetch-registry: true
+    # 注册中心的服务地址
+    service-url:
+      defaultZone: http://${eureka.server.hostname}:${eureka.server.port}/eureka/
+#      defaultZone: http://eureka-cluster-7001:7001/eureka/,http://eureka-cluster-7002:7002/eureka/,http://eureka-cluster-7003:7003/eureka/
