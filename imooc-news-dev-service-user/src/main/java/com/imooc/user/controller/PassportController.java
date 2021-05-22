@@ -47,7 +47,7 @@ public class PassportController extends BaseController implements PassportContro
         String userIp = IPUtil.getRequestIp(request);
 
         // 根据用户的ip进行限制，限制用户在60秒内只能获得一次验证码
-        redis.setnx60s(MOBILE_SMSCODE + ":" + userIp, userIp);
+        redis.set(MOBILE_SMSCODE + ":" + userIp, userIp, 1);
 
         // 生成随机验证码并且发送短信
         String random = (int)((Math.random() * 9 + 1) * 100000) + "";
